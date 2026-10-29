@@ -45,6 +45,21 @@
             background-attachment: fixed;
             min-height: 100vh;
             margin: 0;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* 隱藏橫向分頁的滾動條（手機） */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @media (max-width: 767px) {
+            /* iOS 聚焦輸入框時若字級 <16px 會自動放大整頁 */
+            .glass-input, textarea { font-size: 16px; }
+            #main-ui { padding: 10px; gap: 10px; }
+            .tab-content h2 { font-size: 20px; }
+            .tab-content > p { margin-bottom: 14px; font-size: 14px; }
+            main { width: 100%; }
         }
 
         .glass-panel {
@@ -183,43 +198,50 @@
     <!-- Main Layout -->
     <div id="main-ui" class="hidden min-h-screen p-4 md:p-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-6">
         
-        <!-- Sidebar Navigation -->
-        <nav class="glass-panel p-4 md:w-64 flex-shrink-0 flex flex-col gap-2">
-            <div class="text-center mb-6 mt-4">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/80 shadow-inner mb-3 text-3xl text-brand">
+        <!-- Sidebar Navigation（手機改為頂部橫向分頁） -->
+        <nav class="glass-panel p-3 md:p-4 md:w-64 flex-shrink-0 flex flex-col gap-2">
+            <div class="flex items-center gap-3 md:flex-col md:text-center mb-1 md:mb-4 md:mt-2">
+                <div class="inline-flex items-center justify-center w-11 h-11 md:w-16 md:h-16 rounded-full bg-white/80 shadow-inner text-lg md:text-3xl text-brand shrink-0">
                     <i class="fa-solid fa-pencil"></i>
                 </div>
-                <h1 class="text-xl font-bold text-gray-800 font-rounded">小作家幫手</h1>
-                <p class="text-sm text-gray-600">中文寫作輔助</p>
-                <div id="user-id-display" class="mt-2 text-xs bg-white/50 py-1 px-2 rounded-lg text-gray-500 truncate"></div>
-                <div id="model-display" class="mt-1 text-xs text-gray-400 truncate"></div>
-                <button onclick="openSettings()" class="mt-2 text-xs text-gray-500 hover:text-brand flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-gear"></i> 更換 Key / 模型
+                <div class="min-w-0 flex-1 md:w-full">
+                    <h1 class="text-base md:text-xl font-bold text-gray-800 font-rounded">小作家幫手</h1>
+                    <p class="hidden sm:block text-xs md:text-sm text-gray-600">中文寫作輔助</p>
+                    <div id="user-id-display" class="hidden md:block mt-2 text-xs bg-white/50 py-1 px-2 rounded-lg text-gray-500 truncate"></div>
+                    <div id="model-display" class="hidden md:block mt-1 text-xs text-gray-400 truncate"></div>
+                    <button onclick="openSettings()" class="hidden md:flex mt-2 text-xs text-gray-500 hover:text-brand items-center justify-center gap-1">
+                        <i class="fa-solid fa-gear"></i> 更換 Key / 模型
+                    </button>
+                </div>
+                <button onclick="openSettings()" aria-label="AI 設定" class="md:hidden shrink-0 w-9 h-9 rounded-full bg-white/70 text-gray-600">
+                    <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
 
-            <button onclick="switchTab('tab-words')" id="nav-words" class="tab-btn active w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
-                <i class="fa-solid fa-book-open text-brand"></i> 詞語百寶箱
-            </button>
-            <button onclick="switchTab('tab-sentences')" id="nav-sentences" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
-                <i class="fa-solid fa-check-double text-brand"></i> 句子小診所
-            </button>
-            <button onclick="switchTab('tab-expressions')" id="nav-expressions" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
-                <i class="fa-solid fa-wand-magic-sparkles text-brand"></i> 五感魔法棒
-            </button>
-            <button onclick="switchTab('tab-notebook')" id="nav-notebook" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3 mt-auto">
-                <i class="fa-solid fa-book text-mint-dark"></i> 我的筆記本
-            </button>
-            <button onclick="switchTab('tab-stats')" id="nav-stats" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
-                <i class="fa-solid fa-chart-line text-purple-500"></i> 使用數據
-            </button>
+            <div class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 no-scrollbar">
+                <button onclick="switchTab('tab-words')" id="nav-words" class="tab-btn active w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3">
+                    <i class="fa-solid fa-book-open text-brand"></i> 詞語百寶箱
+                </button>
+                <button onclick="switchTab('tab-sentences')" id="nav-sentences" class="tab-btn w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3">
+                    <i class="fa-solid fa-check-double text-brand"></i> 句子小診所
+                </button>
+                <button onclick="switchTab('tab-expressions')" id="nav-expressions" class="tab-btn w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3">
+                    <i class="fa-solid fa-wand-magic-sparkles text-brand"></i> 五感魔法棒
+                </button>
+                <button onclick="switchTab('tab-notebook')" id="nav-notebook" class="tab-btn w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3 md:mt-auto">
+                    <i class="fa-solid fa-book text-mint-dark"></i> 我的筆記本
+                </button>
+                <button onclick="switchTab('tab-stats')" id="nav-stats" class="tab-btn w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3">
+                    <i class="fa-solid fa-chart-line text-purple-500"></i> 使用數據
+                </button>
+            </div>
         </nav>
 
         <!-- Main Content Area -->
-        <main class="flex-grow glass-panel p-6 relative overflow-hidden flex flex-col">
+        <main class="flex-grow glass-panel p-4 md:p-6 relative md:overflow-hidden flex flex-col min-w-0">
             
             <!-- Module 1: Words -->
-            <div id="tab-words" class="tab-content h-full flex flex-col">
+            <div id="tab-words" class="tab-content md:h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
                     <i class="fa-solid fa-book-open"></i> 詞語百寶箱
                 </h2>
@@ -243,7 +265,7 @@
             </div>
 
             <!-- Module 2: Sentences -->
-            <div id="tab-sentences" class="tab-content hidden h-full flex flex-col">
+            <div id="tab-sentences" class="tab-content hidden md:h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
                     <i class="fa-solid fa-check-double"></i> 句子小診所
                 </h2>
@@ -266,7 +288,7 @@
             </div>
 
             <!-- Module 3: Expressions -->
-            <div id="tab-expressions" class="tab-content hidden h-full flex flex-col">
+            <div id="tab-expressions" class="tab-content hidden md:h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> 五感魔法棒
                 </h2>
@@ -289,7 +311,7 @@
             </div>
 
             <!-- Module 4: Notebook -->
-            <div id="tab-notebook" class="tab-content hidden h-full flex flex-col">
+            <div id="tab-notebook" class="tab-content hidden md:h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-mint-dark">
                     <i class="fa-solid fa-book"></i> 我的筆記本
                 </h2>
@@ -309,7 +331,7 @@
             </div>
 
             <!-- Module 5: Usage Stats（匿名） -->
-            <div id="tab-stats" class="tab-content hidden h-full flex flex-col">
+            <div id="tab-stats" class="tab-content hidden md:h-full flex flex-col">
                 <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-purple-600">
                     <i class="fa-solid fa-chart-line"></i> 使用數據
                 </h2>
