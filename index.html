@@ -158,6 +158,28 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
+    <!-- AI 設定對話框 -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-md p-6">
+            <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-brand"></i> AI 設定
+            </h3>
+            <p class="text-xs text-gray-500 mb-4">只保存在這部裝置的瀏覽器，不會上傳。</p>
+
+            <label class="text-sm font-medium">API Key</label>
+            <input id="settings-key" type="password" class="glass-input w-full rounded-xl px-4 py-2 mt-1 mb-3" placeholder="ark-...">
+
+            <label class="text-sm font-medium">Model / Endpoint ID</label>
+            <input id="settings-model" type="text" class="glass-input w-full rounded-xl px-4 py-2 mt-1 mb-4" placeholder="ep-xxxxxxxx 或模型 ID">
+
+            <div class="flex gap-2">
+                <button onclick="saveSettings()" class="glass-button flex-1 py-2 rounded-xl font-bold">儲存</button>
+                <button onclick="closeSettings()" class="glass-button-secondary flex-1 py-2 rounded-xl font-bold">取消</button>
+            </div>
+            <button onclick="clearSettings()" class="w-full mt-3 text-xs text-red-500 hover:underline">清除已儲存的設定（下次使用時重新輸入）</button>
+        </div>
+    </div>
+
     <!-- Main Layout -->
     <div id="main-ui" class="hidden min-h-screen p-4 md:p-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-6">
         
@@ -170,6 +192,10 @@
                 <h1 class="text-xl font-bold text-gray-800 font-rounded">小作家幫手</h1>
                 <p class="text-sm text-gray-600">中文寫作輔助</p>
                 <div id="user-id-display" class="mt-2 text-xs bg-white/50 py-1 px-2 rounded-lg text-gray-500 truncate"></div>
+                <div id="model-display" class="mt-1 text-xs text-gray-400 truncate"></div>
+                <button onclick="openSettings()" class="mt-2 text-xs text-gray-500 hover:text-brand flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-gear"></i> 更換 Key / 模型
+                </button>
             </div>
 
             <button onclick="switchTab('tab-words')" id="nav-words" class="tab-btn active w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
@@ -400,6 +426,52 @@
             return cfg;
         }
 
+        function renderModelLabel() {
+            const cfg = getDoubaoConfig();
+            document.getElementById('model-display').innerText = cfg.apiKey
+                ? `模型：${cfg.model}`
+                : '尚未設定 API Key';
+        }
+
+        window.openSettings = () => {
+            const cfg = getDoubaoConfig();
+            document.getElementById('settings-key').value = cfg.apiKey || '';
+            document.getElementById('settings-model').value = cfg.model || '';
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeSettings = () => {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.saveSettings = () => {
+            const key = document.getElementById('settings-key').value.trim();
+            const model = document.getElementById('settings-model').value.trim();
+            if (!key) {
+                showToast('API Key 不能留空', 'error');
+                return;
+            }
+            localStorage.setItem(CFG_KEY, JSON.stringify({
+                apiKey: key,
+                baseUrl: DOUBAO_DEFAULTS.baseUrl,
+                model: model || DOUBAO_DEFAULTS.model
+            }));
+            closeSettings();
+            renderModelLabel();
+            showToast('設定已更新');
+        };
+
+        window.clearSettings = () => {
+            localStorage.removeItem(CFG_KEY);
+            closeSettings();
+            renderModelLabel();
+            showToast('已清除設定，下次使用時會重新提示輸入');
+        };
+
         let currentUser = { uid: getLocalUid() };
         let allNotes = []; // In-memory store for all fetched notes
         let currentNotebookFilter = 'all';
@@ -424,6 +496,7 @@
 
             usageStats = loadStats();
             renderStats();
+            renderModelLabel();
             flushStats(); // 補送上次未成功上傳的記錄
         }
 
