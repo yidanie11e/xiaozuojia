@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小作家幫手 - 中文寫作輔助平台</title>
+    <link rel="icon" href="data:,">
+    
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans HK"', 'sans-serif'],
+                        rounded: ['"Nunito"', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            light: '#e0f2fe',
+                            DEFAULT: '#38bdf8',
+                            dark: '#0284c7'
+                        },
+                        mint: {
+                            light: '#d1fae5',
+                            DEFAULT: '#34d399',
+                            dark: '#059669'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Glassmorphism Styles -->
+    <style>
+        body {
+            /* Vibrant pastel gradient background */
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 50%, #d4fc79 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border-radius: 1.5rem;
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #38bdf8;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+        }
+
+        .glass-button {
+            background: linear-gradient(135deg, #38bdf8 0%, #34d399 100%);
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4);
+        }
+
+        .glass-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 211, 153, 0.6);
+        }
+
+        .glass-button:active {
+            transform: translateY(1px);
+        }
+
+        .glass-button-secondary {
+            background: rgba(255, 255, 255, 0.7);
+            color: #0284c7;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        .glass-button-secondary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.8);
+            color: #0284c7;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+        }
+
+        /* Toast notification animation */
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-anim {
+            animation: slideInUp 0.3s ease-out forwards;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #38bdf8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Scrollbar for textareas */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.2); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.8); 
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased font-sans">
+
+    <!-- Loading Screen (Auth) -->
+    <div id="auth-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/50 backdrop-blur-md">
+        <div class="loader mb-4" style="width: 48px; height: 48px; border-width: 6px;"></div>
+        <h2 class="text-xl font-bold text-brand-dark">連線中...</h2>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Main Layout -->
+    <div id="main-ui" class="hidden min-h-screen p-4 md:p-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-6">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="glass-panel p-4 md:w-64 flex-shrink-0 flex flex-col gap-2">
+            <div class="text-center mb-6 mt-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/80 shadow-inner mb-3 text-3xl text-brand">
+                    <i class="fa-solid fa-pencil"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 font-rounded">小作家幫手</h1>
+                <p class="text-sm text-gray-600">中文寫作輔助</p>
+                <div id="user-id-display" class="mt-2 text-xs bg-white/50 py-1 px-2 rounded-lg text-gray-500 truncate"></div>
+            </div>
+
+            <button onclick="switchTab('tab-words')" id="nav-words" class="tab-btn active w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
+                <i class="fa-solid fa-book-open text-brand"></i> 詞語百寶箱
+            </button>
+            <button onclick="switchTab('tab-sentences')" id="nav-sentences" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
+                <i class="fa-solid fa-check-double text-brand"></i> 句子小診所
+            </button>
+            <button onclick="switchTab('tab-expressions')" id="nav-expressions" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
+                <i class="fa-solid fa-wand-magic-sparkles text-brand"></i> 五感魔法棒
+            </button>
+            <button onclick="switchTab('tab-notebook')" id="nav-notebook" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3 mt-auto">
+                <i class="fa-solid fa-book text-mint-dark"></i> 我的筆記本
+            </button>
+            <button onclick="switchTab('tab-stats')" id="nav-stats" class="tab-btn w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-3">
+                <i class="fa-solid fa-chart-line text-purple-500"></i> 使用數據
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow glass-panel p-6 relative overflow-hidden flex flex-col">
+            
+            <!-- Module 1: Words -->
+            <div id="tab-words" class="tab-content h-full flex flex-col">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
+                    <i class="fa-solid fa-book-open"></i> 詞語百寶箱
+                </h2>
+                <p class="text-gray-600 mb-6">輸入一個你想用的詞語，AI 會幫你找出相關的聯想詞或更豐富的近義詞！</p>
+                
+                <div class="flex gap-3 mb-6">
+                    <input type="text" id="word-input" placeholder="例如：海邊、高興、跑..." class="glass-input flex-grow rounded-xl px-4 py-3 text-lg" onkeypress="handleEnter(event, 'word')">
+                    <button onclick="analyzeWord()" id="btn-word" class="glass-button px-6 py-3 rounded-xl font-bold flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-sparkles"></i> 找詞語
+                    </button>
+                </div>
+
+                <div id="word-result-container" class="hidden flex-grow flex flex-col">
+                    <div class="bg-white/50 rounded-xl p-5 flex-grow mb-4 overflow-auto border border-white/60">
+                        <div id="word-result-text" class="text-lg leading-relaxed text-gray-800 whitespace-pre-wrap"></div>
+                    </div>
+                    <button onclick="saveNote('word')" class="glass-button-secondary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-bookmark"></i> 收藏到筆記本
+                    </button>
+                </div>
+            </div>
+
+            <!-- Module 2: Sentences -->
+            <div id="tab-sentences" class="tab-content hidden h-full flex flex-col">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
+                    <i class="fa-solid fa-check-double"></i> 句子小診所
+                </h2>
+                <p class="text-gray-600 mb-6">輸入句子，AI 幫你檢查有沒有語病，還可以變換成「把字句」或「被字句」！</p>
+                
+                <textarea id="sentence-input" placeholder="例如：我把功課做完了。 / 昨天，我很高興地去公園玩耍在。" class="glass-input w-full rounded-xl px-4 py-3 text-lg mb-4 resize-none h-24"></textarea>
+                
+                <button onclick="analyzeSentence()" id="btn-sentence" class="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mb-6">
+                    <i class="fa-solid fa-stethoscope"></i> 檢查並變換句式
+                </button>
+
+                <div id="sentence-result-container" class="hidden flex-grow flex flex-col">
+                    <div class="bg-white/50 rounded-xl p-5 flex-grow mb-4 overflow-auto border border-white/60">
+                        <div id="sentence-result-text" class="text-lg leading-relaxed text-gray-800 whitespace-pre-wrap"></div>
+                    </div>
+                    <button onclick="saveNote('sentence')" class="glass-button-secondary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-bookmark"></i> 收藏句子
+                    </button>
+                </div>
+            </div>
+
+            <!-- Module 3: Expressions -->
+            <div id="tab-expressions" class="tab-content hidden h-full flex flex-col">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-dark">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 五感魔法棒
+                </h2>
+                <p class="text-gray-600 mb-6">輸入簡單的句子，AI 會加入視覺、聽覺等「五感描寫」，讓你的文章更生動！</p>
+                
+                <textarea id="expression-input" placeholder="例如：今天天氣很好。 / 媽媽煮的菜很好吃。" class="glass-input w-full rounded-xl px-4 py-3 text-lg mb-4 resize-none h-24"></textarea>
+                
+                <button onclick="analyzeExpression()" id="btn-expression" class="glass-button w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 mb-6">
+                    <i class="fa-solid fa-wand-sparkles"></i> 施展文字魔法
+                </button>
+
+                <div id="expression-result-container" class="hidden flex-grow flex flex-col">
+                    <div class="bg-white/50 rounded-xl p-5 flex-grow mb-4 overflow-auto border border-white/60">
+                        <div id="expression-result-text" class="text-lg leading-relaxed text-gray-800 whitespace-pre-wrap"></div>
+                    </div>
+                    <button onclick="saveNote('expression')" class="glass-button-secondary w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-bookmark"></i> 收藏妙筆生花
+                    </button>
+                </div>
+            </div>
+
+            <!-- Module 4: Notebook -->
+            <div id="tab-notebook" class="tab-content hidden h-full flex flex-col">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-mint-dark">
+                    <i class="fa-solid fa-book"></i> 我的筆記本
+                </h2>
+                <p class="text-gray-600 mb-6">這裡保存了你收藏的精美詞句。</p>
+                
+                <div class="flex gap-2 mb-4">
+                    <button onclick="filterNotebook('all')" class="notebook-filter glass-button-secondary px-4 py-1 rounded-full text-sm font-bold bg-white/90">全部</button>
+                    <button onclick="filterNotebook('word')" class="notebook-filter glass-button-secondary px-4 py-1 rounded-full text-sm">詞語</button>
+                    <button onclick="filterNotebook('sentence')" class="notebook-filter glass-button-secondary px-4 py-1 rounded-full text-sm">句子</button>
+                    <button onclick="filterNotebook('expression')" class="notebook-filter glass-button-secondary px-4 py-1 rounded-full text-sm">修辭</button>
+                </div>
+
+                <div id="notebook-list" class="flex-grow overflow-auto flex flex-col gap-3 pr-2">
+                    <!-- Notes injected here -->
+                    <div class="text-center text-gray-500 mt-10">載入中...</div>
+                </div>
+            </div>
+
+            <!-- Module 5: Usage Stats（匿名） -->
+            <div id="tab-stats" class="tab-content hidden h-full flex flex-col">
+                <h2 class="text-2xl font-bold mb-2 flex items-center gap-2 text-purple-600">
+                    <i class="fa-solid fa-chart-line"></i> 使用數據
+                </h2>
+                <p class="text-gray-600 mb-6">匿名使用統計：只記錄模組、成功或失敗、耗時與字數，不會記錄學生輸入了什麼、AI 說了些什麼。</p>
+
+                <!-- 教師解鎖 -->
+                <div id="stats-lock-view" class="flex-grow flex flex-col items-center justify-center">
+                    <div class="bg-white/50 p-8 rounded-2xl border border-white/60 max-w-sm w-full text-center shadow-lg">
+                        <i class="fa-solid fa-lock text-4xl text-purple-400 mb-4"></i>
+                        <h3 class="text-lg font-bold mb-4">請輸入教師密碼</h3>
+                        <input type="password" id="stats-pwd" class="glass-input w-full rounded-xl px-4 py-2 text-center mb-4" placeholder="密碼" onkeypress="handleStatsEnter(event)">
+                        <div id="stats-error" class="text-red-500 text-sm mb-4 hidden">密碼錯誤，請重試。</div>
+                        <button onclick="unlockStats()" class="glass-button w-full py-2 rounded-xl font-bold">解鎖</button>
+                    </div>
+                </div>
+
+                <!-- 數據面板 -->
+                <div id="stats-view" class="hidden flex-grow flex flex-col min-h-0">
+                    <div class="flex justify-between items-center mb-3">
+                        <div id="stats-sync" class="text-xs text-gray-500"></div>
+                        <button onclick="lockStats()" class="text-sm text-red-500 hover:underline">鎖定</button>
+                    </div>
+
+                    <div id="stats-cards" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+
+                    <div class="bg-white/50 rounded-xl border border-white/60 overflow-auto mb-3 flex-grow">
+                        <table class="w-full text-sm">
+                            <thead class="sticky top-0 bg-white/90 text-gray-500">
+                                <tr>
+                                    <th class="text-left px-3 py-2 font-medium">時間</th>
+                                    <th class="text-left px-3 py-2 font-medium">模組</th>
+                                    <th class="text-left px-3 py-2 font-medium">狀態</th>
+                                    <th class="text-right px-3 py-2 font-medium">耗時</th>
+                                    <th class="text-right px-3 py-2 font-medium">字數</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stats-rows"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportStatsCSV()" class="glass-button-secondary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv"></i> 匯出 CSV
+                        </button>
+                        <button onclick="flushStats(true)" class="glass-button-secondary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 立即上傳
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">這裡只顯示這部裝置的記錄；全班匯總在 Google Sheet。裝置代號為隨機碼，無法對應到學生身份。</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Application Logic -->
+    <script type="module">
+        // ================= 豆包（火山方舟 Ark）API 設定 =================
+        // 可直接在這裡填入 apiKey 與 model；也可留空，第一次點 AI 功能時會提示輸入，
+        // 設定只保存在瀏覽器 localStorage，不會上傳。
+        const DOUBAO_DEFAULTS = {
+            apiKey: '',                     // 公開 repo 切勿填入 API Key；首次使用時會在瀏覽器提示輸入
+            baseUrl: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+            model: 'ep-20261028124648-dqgl4'
+        };
+
+        // ================= 本機儲存（取代 Firebase） =================
+        const UID_KEY = 'xzj_uid';
+        const NOTES_KEY = 'xzj_notes';
+        const CFG_KEY = 'xzj_doubao_config';
+
+        function getLocalUid() {
+            let id = localStorage.getItem(UID_KEY);
+            if (!id) {
+                id = 'local-' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem(UID_KEY, id);
+            }
+            return id;
+        }
+
+        function loadNotes() {
+            try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); }
+            catch (e) { return []; }
+        }
+
+        function persistNotes(list) {
+            localStorage.setItem(NOTES_KEY, JSON.stringify(list));
+        }
+
+        function getDoubaoConfig() {
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) {}
+            return {
+                apiKey: saved.apiKey || DOUBAO_DEFAULTS.apiKey,
+                baseUrl: saved.baseUrl || DOUBAO_DEFAULTS.baseUrl,
+                model: saved.model || DOUBAO_DEFAULTS.model
+            };
+        }
+
+        function ensureDoubaoConfig() {
+            let cfg = getDoubaoConfig();
+            if (cfg.apiKey) return cfg;
+
+            const key = window.prompt('請輸入豆包（火山方舟 Ark）API Key：\n只會保存在此瀏覽器，不會上傳。');
+            if (!key || !key.trim()) return null;
+
+            const model = window.prompt('請輸入 Model ID 或 Endpoint ID：', cfg.model);
+            cfg = {
+                apiKey: key.trim(),
+                baseUrl: cfg.baseUrl,
+                model: (model && model.trim()) ? model.trim() : cfg.model
+            };
+            localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+            return cfg;
+        }
+
+        let currentUser = { uid: getLocalUid() };
+        let allNotes = []; // In-memory store for all fetched notes
+        let currentNotebookFilter = 'all';
+        let statsUnlocked = false;
+
+        // Current AI Generated Content State
+        let currentGeneratedContent = {
+            word: { input: '', result: '' },
+            sentence: { input: '', result: '' },
+            expression: { input: '', result: '' }
+        };
+
+        // Initialize App
+        function init() {
+            document.getElementById('user-id-display').innerText = `學生 ID: ${currentUser.uid}`;
+            document.getElementById('auth-loading').style.display = 'none';
+            document.getElementById('main-ui').classList.remove('hidden');
+
+            allNotes = loadNotes();
+            allNotes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            renderNotebook();
+
+            usageStats = loadStats();
+            renderStats();
+            flushStats(); // 補送上次未成功上傳的記錄
+        }
+
+        // UI Helpers
+        window.switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById(`nav-${tabId.split('-')[1]}`).classList.add('active');
+        };
+
+        window.showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let icon = type === 'success' ? '<i class="fa-solid fa-circle-check text-green-500"></i>' : '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
+            
+            toast.className = `glass-panel px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg toast-anim bg-white/90 border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'}`;
+            toast.innerHTML = `${icon} <span class="font-bold text-gray-700">${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // UI Loading State Helper
+        function setLoading(btnId, isLoading, originalHtml) {
+            const btn = document.getElementById(btnId);
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<div class="loader mr-2" style="width: 18px; height: 18px; border-width: 3px;"></div> 處理中...`;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        window.handleEnter = (e, type) => {
+            if (e.key === 'Enter') {
+                if (type === 'word') window.analyzeWord();
+            }
+        }
+
+        // 豆包（火山方舟 Ark）Chat Completions 呼叫
+        async function callAI(prompt, systemInstruction) {
+            const cfg = ensureDoubaoConfig();
+            if (!cfg) {
+                const err = new Error('NO_KEY');
+                err.code = 'NO_KEY';
+                throw err;
+            }
+
+            try {
+                const response = await fetch(cfg.baseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${cfg.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: cfg.model,
+                        thinking: { type: 'disabled' },
+                        messages: [
+                            { role: 'system', content: `${systemInstruction}\n\n語言要求：一律使用規範的現代漢語書面語（普通話），以繁體字輸出，逐字檢查，禁止出現簡體字。嚴禁粵語口語詞與粵語語法，例如「唔、嘅、咗、啲、喺、係、咁、乜、嗰、嚟、睇、畀、俾、晒、哋、好正、搞掂、成個人」等一律不可使用；香港地名、人名、食物等專有名詞可保留。除了指定格式之外，不要輸出任何說明、評語或客套話。` },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    const msg = (data.error && data.error.message) ? data.error.message : `HTTP ${response.status}`;
+                    throw new Error(msg);
+                }
+
+                const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+                if (!text) throw new Error('Invalid response from Doubao');
+
+                return text.trim();
+            } catch (error) {
+                console.error('Doubao API Error:', error);
+                throw error;
+            }
+        }
+
+        // Module 1: Words
+        window.analyzeWord = async () => {
+            const input = document.getElementById('word-input').value.trim();
+            if (!input) {
+                showToast('請先輸入詞語', 'error');
+                return;
+            }
+
+            setLoading('btn-word', true, '<i class="fa-solid fa-sparkles"></i> 找詞語');
+            
+            const systemPrompt = `你是一位香港小學的中文科老師，正在幫學生擴充作文詞彙。
+
+先判斷學生輸入的詞語屬於哪一類：
+- 名詞（如「海邊」「操場」）：給 5 個寫作文時用得上的聯想詞——相關的事物、景物、動作或聲音。
+- 形容詞或情感詞（如「高興」「美麗」）：給 5 個意思相近但語感略有不同的詞，由淺入深。
+- 動詞（如「跑」「看」）：給 5 個更精確、更有畫面的表達方式。
+
+選詞原則：
+- 小四至中一學生看得懂、作文裡真的會用。
+- 必須是現代漢語書面語的通用詞，不要粵語口語詞（如「好正」「搞掂」「唔該」）。
+- 避免文言腔、成語堆砌和生僻字。
+- 5 個詞不可意思重複。
+
+只輸出這 5 個詞，用頓號（、）分隔。不要編號、不要解釋、不要加句號。`;
+            
+            const startedAt = Date.now();
+            try {
+                const result = await callAI(`學生輸入：${input}`, systemPrompt);
+                
+                currentGeneratedContent.word = { input, result };
+                document.getElementById('word-result-text').innerText = result;
+                document.getElementById('word-result-container').classList.remove('hidden');
+                logUsage('word', true, Date.now() - startedAt, input, result);
+                
+            } catch (e) {
+                logUsage('word', false, Date.now() - startedAt, input, '');
+                showToast(e && e.code === 'NO_KEY' ? '未設定 API Key，已取消' : `AI 錯誤：${(e && e.message) || '請重試'}`, 'error');
+            } finally {
+                setLoading('btn-word', false, '<i class="fa-solid fa-sparkles"></i> 找詞語');
+            }
+        };
+
+        // Module 2: Sentences
+        window.analyzeSentence = async () => {
+            const input = document.getElementById('sentence-input').value.trim();
+            if (!input) {
+                showToast('請先輸入句子', 'error');
+                return;
+            }
+
+            setLoading('btn-sentence', true, '<i class="fa-solid fa-stethoscope"></i> 檢查並變換句式');
+            
+            const systemPrompt = `你是香港小學中文科的句子批改老師。學生會輸入一句中文，可能是通順的，也可能有語病。請按以下格式輸出，不要加任何解釋、評語或客套話。
+
+第一行只輸出下列其中一句，句首不要加「句子通順」「判斷結果」之類的標籤：
+- 完全正確，就輸出：✅ 語法正確
+- 有語病，就輸出：❌ 錯誤。建議改為：<改正後的原句>
+
+之後每行一項（只在原句可以自然改寫時才寫，否則整行省略）：
+把字句：<改寫句>
+被字句：<改寫句>
+
+要求：
+- 改正時保留原意，只改動真正有問題的地方，不要趁機把句子改寫得更華麗。
+- 改正後的句子要是規範的現代漢語書面語，讀起來通順自然；即使原句正確，也不要改成粵語口語。
+- 若學生原句含粵語口語或方言（如「我唔知」「佢走咗」），改正時一併轉為書面語。
+- 把字句、被字句要符合香港小學課本教的結構，不要硬造。
+- 不要輸出簡體字。`;
+            
+            const startedAt = Date.now();
+            try {
+                const result = await callAI(`學生句子：${input}`, systemPrompt);
+                
+                currentGeneratedContent.sentence = { input, result };
+                document.getElementById('sentence-result-text').innerText = result;
+                document.getElementById('sentence-result-container').classList.remove('hidden');
+                logUsage('sentence', true, Date.now() - startedAt, input, result);
+                
+            } catch (e) {
+                logUsage('sentence', false, Date.now() - startedAt, input, '');
+                showToast(e && e.code === 'NO_KEY' ? '未設定 API Key，已取消' : `AI 錯誤：${(e && e.message) || '請重試'}`, 'error');
+            } finally {
+                setLoading('btn-sentence', false, '<i class="fa-solid fa-stethoscope"></i> 檢查並變換句式');
+            }
+        };
+
+        // Module 3: Expressions
+        window.analyzeExpression = async () => {
+            const input = document.getElementById('expression-input').value.trim();
+            if (!input) {
+                showToast('請先輸入句子', 'error');
+                return;
+            }
+
+            setLoading('btn-expression', true, '<i class="fa-solid fa-wand-sparkles"></i> 施展文字魔法');
+            
+            const systemPrompt = `你是香港小學中文科的寫作老師，擅長把平鋪直敘的句子寫得更有畫面感。
+
+請把學生輸入的句子擴寫成一句約 40–60 字的中文，加入具體的五感細節（視覺、聽覺、嗅覺、觸覺、味覺中選兩至三種就夠），讓讀者彷彿看見那個畫面。
+
+寫作要求：
+- 用規範的現代漢語書面語寫作，詞語要小學生作文真的會用、讀起來自然；不要粵語口語（如「散晒」「啲汗」「好似……咁」「淨係」「嘅」），也不要文藝腔或堆砌成語、形容詞。
+- 若原句是粵語口語，先理解意思，再用書面語擴寫。
+- 細節要貼合原句的情境與人物，不要添加原句沒有提到的情節、地點或角色。
+- 語氣要和原句一致；原句平淡就寫得溫和自然，原句雀躍就寫得輕快。
+
+只輸出一句擴寫後的句子：不要解釋、不要說明用了哪種感官、不要加書名號或引號。`;
+            
+            const startedAt = Date.now();
+            try {
+                const result = await callAI(`簡單句子：${input}`, systemPrompt);
+                
+                currentGeneratedContent.expression = { input, result };
+                document.getElementById('expression-result-text').innerText = result;
+                document.getElementById('expression-result-container').classList.remove('hidden');
+                logUsage('expression', true, Date.now() - startedAt, input, result);
+                
+            } catch (e) {
+                logUsage('expression', false, Date.now() - startedAt, input, '');
+                showToast(e && e.code === 'NO_KEY' ? '未設定 API Key，已取消' : `AI 錯誤：${(e && e.message) || '請重試'}`, 'error');
+            } finally {
+                setLoading('btn-expression', false, '<i class="fa-solid fa-wand-sparkles"></i> 施展文字魔法');
+            }
+        };
+
+        // Save Data（本機儲存）
+        window.saveNote = async (type) => {
+            const content = currentGeneratedContent[type];
+            if (!content || !content.result) return;
+
+            try {
+                allNotes.unshift({
+                    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                    uid: currentUser.uid,
+                    type: type, // 'word', 'sentence', 'expression'
+                    input: content.input,
+                    result: content.result,
+                    timestamp: Date.now()
+                });
+                persistNotes(allNotes);
+
+                showToast('已成功收藏到筆記本！');
+
+                renderNotebook();
+
+                // Switch to notebook tab to show it
+                window.switchTab('tab-notebook');
+
+            } catch (error) {
+                console.error("Save error:", error);
+                showToast('收藏失敗', 'error');
+            }
+        };
+
+        // Render Notebook
+        window.filterNotebook = (filterType) => {
+            currentNotebookFilter = filterType;
+            
+            // Update filter buttons styling
+            document.querySelectorAll('.notebook-filter').forEach(btn => {
+                btn.classList.remove('bg-white/90', 'font-bold');
+                if (btn.innerText.includes(getFilterName(filterType))) {
+                    btn.classList.add('bg-white/90', 'font-bold');
+                }
+            });
+            
+            renderNotebook();
+        };
+
+        function getFilterName(type) {
+            if(type === 'all') return '全部';
+            if(type === 'word') return '詞語';
+            if(type === 'sentence') return '句子';
+            if(type === 'expression') return '修辭';
+            return '';
+        }
+
+        function getTypeIcon(type) {
+            if(type === 'word') return '<i class="fa-solid fa-book-open text-brand"></i>';
+            if(type === 'sentence') return '<i class="fa-solid fa-check-double text-orange-400"></i>';
+            if(type === 'expression') return '<i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i>';
+            return '';
+        }
+
+        function getTypeName(type) {
+            if(type === 'word') return '詞語探索';
+            if(type === 'sentence') return '句子診所';
+            if(type === 'expression') return '五感魔法';
+            return '紀錄';
+        }
+
+        function renderNotebook() {
+            const container = document.getElementById('notebook-list');
+            if (!currentUser) {
+                container.innerHTML = `<div class="text-center text-gray-500 mt-10">請先登入</div>`;
+                return;
+            }
+
+            // Filter for current user and selected type
+            let userNotes = allNotes.filter(n => n.uid === currentUser.uid);
+            if (currentNotebookFilter !== 'all') {
+                userNotes = userNotes.filter(n => n.type === currentNotebookFilter);
+            }
+
+            if (userNotes.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500 mt-10 bg-white/40 p-6 rounded-2xl border border-white/50">筆記本目前是空的哦，快去探索並收藏吧！</div>`;
+                return;
+            }
+
+            container.innerHTML = userNotes.map(note => createNoteHTML(note)).join('');
+        }
+
+        function createNoteHTML(note) {
+            const ts = note.timestamp && typeof note.timestamp.toMillis === 'function' ? note.timestamp.toMillis() : note.timestamp;
+            const dateStr = ts ? new Date(ts).toLocaleString('zh-HK') : '剛剛';
+            
+            let html = `
+                <div class="bg-white/60 p-4 rounded-xl border border-white/80 shadow-sm mb-2 relative">
+                    <div class="flex items-center gap-2 mb-2">
+                        ${getTypeIcon(note.type)}
+                        <span class="font-bold text-gray-700 text-sm">${getTypeName(note.type)}</span>
+                        <span class="text-xs text-gray-400 ml-auto">${dateStr}</span>
+                    </div>
+                    <div class="bg-white/40 rounded p-2 mb-2 text-sm text-gray-600 border border-white/40">
+                        <span class="font-semibold text-gray-500">原輸入：</span>${note.input}
+                    </div>
+                    <div class="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">${note.result}</div>
+                </div>
+            `;
+            return html;
+        }
+
+        // Module 5: 匿名使用數據
+        // 把 Google Apps Script Web App 的 /exec 網址貼在這裡；留空則只存本機。
+        const STATS_ENDPOINT = '';
+        const STATS_KEY = 'xzj_stats';
+        const STATS_MAX = 500;
+
+        let usageStats = loadStats();
+
+        function loadStats() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(STATS_KEY) || '[]');
+                return Array.isArray(raw) ? raw : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function persistStats(list) {
+            localStorage.setItem(STATS_KEY, JSON.stringify(list.slice(0, STATS_MAX)));
+        }
+
+        // 只記錄「用量」，不記錄內容
+        function logUsage(event, ok, ms, inputText, outputText) {
+            usageStats.unshift({
+                ts: Date.now(),
+                event: event,                 // word / sentence / expression
+                ok: ok ? 1 : 0,
+                ms: ms,
+                inLen: (inputText || '').length,
+                outLen: (outputText || '').length,
+                sid: currentUser.uid.slice(-6), // 隨機裝置代號，無法對應到學生
+                sent: false
+            });
+            usageStats = usageStats.slice(0, STATS_MAX);
+            persistStats(usageStats);
+            if (statsUnlocked) renderStats();
+            flushStats();
+        }
+
+        // 送往 Google Sheet；no-cors 下無法讀回應，送出即視為成功
+        async function flushStats(manual) {
+            if (manual) await new Promise(r => setTimeout(r, 0));
+            if (!STATS_ENDPOINT || !navigator.onLine) {
+                if (manual) showToast(STATS_ENDPOINT ? '目前離線，稍後會自動重試' : '未設定上傳網址，記錄只存在本機', 'error');
+                return;
+            }
+
+            const pending = usageStats.filter(r => !r.sent).slice(0, 20);
+            if (pending.length === 0) {
+                if (manual) showToast('沒有待上傳的記錄');
+                return;
+            }
+
+            let sentCount = 0;
+            for (const rec of pending) {
+                try {
+                    await fetch(STATS_ENDPOINT, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(rec)
+                    });
+                    rec.sent = true;
+                    sentCount++;
+                } catch (e) {
+                    break;
+                }
+            }
+
+            persistStats(usageStats);
+            if (statsUnlocked) renderStats();
+            if (manual) showToast(sentCount ? `已上傳 ${sentCount} 筆` : '上傳失敗，稍後會自動重試', sentCount ? 'success' : 'error');
+        }
+        window.flushStats = flushStats; // 供 HTML 按鈕呼叫（module 作用域需明確掛到 window）
+
+        function renderStats() {
+            const total = usageStats.length;
+            const okCount = usageStats.filter(r => r.ok).length;
+            const avg = total ? usageStats.reduce((sum, r) => sum + r.ms, 0) / total : 0;
+            const pending = usageStats.filter(r => !r.sent).length;
+
+            const cards = [
+                ['總次數', total],
+                ['成功率', total ? Math.round(okCount / total * 100) + '%' : '—'],
+                ['平均耗時', total ? (avg / 1000).toFixed(1) + 's' : '—'],
+                ['待上傳', STATS_ENDPOINT ? pending : '未設定']
+            ];
+            document.getElementById('stats-cards').innerHTML = cards.map(([label, value]) => `
+                <div class="bg-white/60 rounded-xl border border-white/70 p-3 text-center">
+                    <div class="text-xs text-gray-500 mb-1">${label}</div>
+                    <div class="text-xl font-bold text-gray-800">${value}</div>
+                </div>`).join('');
+
+            document.getElementById('stats-rows').innerHTML = usageStats.slice(0, 50).map(r => {
+                const moduleName = r.event === 'word' ? '詞語' : r.event === 'sentence' ? '句子' : '五感';
+                const status = r.ok ? '<span class="text-green-600">成功</span>' : '<span class="text-red-500">失敗</span>';
+                return `<tr class="border-t border-white/60">
+                    <td class="px-3 py-2 whitespace-nowrap text-gray-500">${new Date(r.ts).toLocaleString('zh-HK')}</td>
+                    <td class="px-3 py-2">${moduleName}</td>
+                    <td class="px-3 py-2">${status}</td>
+                    <td class="px-3 py-2 text-right">${(r.ms / 1000).toFixed(1)}s</td>
+                    <td class="px-3 py-2 text-right text-gray-500">${r.inLen}→${r.outLen}</td>
+                </tr>`;
+            }).join('') || `<tr><td colspan="5" class="px-3 py-8 text-center text-gray-500">這部裝置還沒有使用記錄</td></tr>`;
+
+            document.getElementById('stats-sync').innerText = STATS_ENDPOINT
+                ? `本機 ${total} 筆 · 待上傳 ${pending} 筆 · 全班匯總見 Google Sheet`
+                : `本機 ${total} 筆 · 未設定上傳網址（只存在這部裝置）`;
+        }
+
+        window.unlockStats = () => {
+            const pwd = document.getElementById('stats-pwd').value;
+            const err = document.getElementById('stats-error');
+
+            if (pwd === 'teacher123') {
+                statsUnlocked = true;
+                err.classList.add('hidden');
+                document.getElementById('stats-lock-view').classList.add('hidden');
+                document.getElementById('stats-view').classList.remove('hidden');
+                document.getElementById('stats-view').classList.add('flex');
+                document.getElementById('stats-pwd').value = '';
+                renderStats();
+            } else {
+                err.classList.remove('hidden');
+            }
+        };
+
+        window.lockStats = () => {
+            statsUnlocked = false;
+            document.getElementById('stats-lock-view').classList.remove('hidden');
+            document.getElementById('stats-view').classList.add('hidden');
+            document.getElementById('stats-view').classList.remove('flex');
+        };
+
+        window.handleStatsEnter = (e) => {
+            if (e.key === 'Enter') window.unlockStats();
+        };
+
+        window.exportStatsCSV = () => {
+            if (!usageStats.length) {
+                showToast('還沒有可匯出的記錄', 'error');
+                return;
+            }
+            const header = '時間,模組,成功,耗時(ms),輸入字數,輸出字數,裝置代號\n';
+            const rows = usageStats.map(r => [
+                new Date(r.ts).toLocaleString('zh-HK'),
+                r.event,
+                r.ok,
+                r.ms,
+                r.inLen,
+                r.outLen,
+                r.sid
+            ].join(',')).join('\n');
+
+            const blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `xzj-usage-${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        };
+
+        // Bootstrap App
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
