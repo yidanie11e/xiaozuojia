@@ -199,7 +199,7 @@
     <div id="main-ui" class="hidden min-h-screen p-4 md:p-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-6">
         
         <!-- Sidebar Navigation（手機改為頂部橫向分頁） -->
-        <nav class="glass-panel p-3 md:p-4 md:w-64 flex-shrink-0 flex flex-col gap-2">
+        <nav class="glass-panel p-3 md:p-4 w-full min-w-0 md:w-64 flex-shrink-0 flex flex-col gap-2">
             <div class="flex items-center gap-3 md:flex-col md:text-center mb-1 md:mb-4 md:mt-2">
                 <div class="inline-flex items-center justify-center w-11 h-11 md:w-16 md:h-16 rounded-full bg-white/80 shadow-inner text-lg md:text-3xl text-brand shrink-0">
                     <i class="fa-solid fa-pencil"></i>
@@ -218,7 +218,7 @@
                 </button>
             </div>
 
-            <div class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 no-scrollbar">
+            <div class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 no-scrollbar min-w-0">
                 <button onclick="switchTab('tab-words')" id="nav-words" class="tab-btn active w-auto md:w-full whitespace-nowrap shrink-0 text-left px-4 py-2 md:py-3 rounded-xl text-gray-700 hover:bg-white/50 flex items-center gap-2 md:gap-3">
                     <i class="fa-solid fa-book-open text-brand"></i> 詞語百寶箱
                 </button>
@@ -247,9 +247,9 @@
                 </h2>
                 <p class="text-gray-600 mb-6">輸入一個你想用的詞語，AI 會幫你找出相關的聯想詞或更豐富的近義詞！</p>
                 
-                <div class="flex gap-3 mb-6">
-                    <input type="text" id="word-input" placeholder="例如：海邊、高興、跑..." class="glass-input flex-grow rounded-xl px-4 py-3 text-lg" onkeypress="handleEnter(event, 'word')">
-                    <button onclick="analyzeWord()" id="btn-word" class="glass-button px-6 py-3 rounded-xl font-bold flex items-center gap-2 whitespace-nowrap">
+                <div class="flex flex-col md:flex-row md:items-start gap-3 mb-6">
+                    <input type="text" id="word-input" placeholder="例如：海邊、高興、跑..." class="glass-input w-full md:w-1/2 h-16 px-4 text-lg" onkeypress="handleEnter(event, 'word')">
+                    <button onclick="analyzeWord()" id="btn-word" class="glass-button w-full md:w-auto h-16 px-6 rounded-xl font-bold flex items-center justify-center gap-2 whitespace-nowrap">
                         <i class="fa-solid fa-sparkles"></i> 找詞語
                     </button>
                 </div>
